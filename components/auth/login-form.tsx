@@ -3,7 +3,7 @@
 import { ArrowRight, KeyRound, LockKeyhole, UserRound } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 export function LoginForm({ setupMode }: { setupMode: boolean }) {
   const router = useRouter();
@@ -12,16 +12,21 @@ export function LoginForm({ setupMode }: { setupMode: boolean }) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(setupMode ? "Create your first manual user from Manual Users to enable login." : "");
 
-  const signIn = async () => {
+  const signIn = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (!username.trim() || !password) {
+      setStatus("Enter username and password.");
+      return;
+    }
     setLoading(true);
     setStatus("");
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: username.trim(), password })
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         setStatus(payload.message ?? "Unable to sign in.");
         return;
@@ -65,7 +70,7 @@ export function LoginForm({ setupMode }: { setupMode: boolean }) {
                 <LockKeyhole className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-6 space-y-3">
+            <form onSubmit={signIn} className="mt-6 space-y-3">
               <label className="block">
                 <span className="mb-2 block text-sm text-muted">Username</span>
                 <span className="flex items-center gap-2 rounded-md border border-line/20 bg-ink px-3 py-2.5 focus-within:border-gold">
@@ -77,14 +82,14 @@ export function LoginForm({ setupMode }: { setupMode: boolean }) {
                 <span className="mb-2 block text-sm text-muted">Password</span>
                 <span className="flex items-center gap-2 rounded-md border border-line/20 bg-ink px-3 py-2.5 focus-within:border-gold">
                   <KeyRound className="h-4 w-4 text-muted" />
-                  <input value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => event.key === "Enter" && signIn()} className="w-full bg-transparent outline-none" type="password" autoComplete="current-password" />
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} className="w-full bg-transparent outline-none" type="password" autoComplete="current-password" />
                 </span>
               </label>
-            </div>
-            <button onClick={signIn} disabled={loading || setupMode} className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-gold px-4 py-3 font-semibold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" type="button">
-              {loading ? "Signing in..." : "Sign In"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
+              <button disabled={loading || setupMode} className="flex w-full items-center justify-center gap-2 rounded-md bg-gold px-4 py-3 font-semibold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" type="submit">
+                {loading ? "Signing in..." : "Sign In"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
             {setupMode && (
               <a href="/team" className="mt-3 flex w-full items-center justify-center rounded-md border border-line/20 px-4 py-3 text-sm text-text hover:bg-ink/40">
                 Open Manual Users Setup

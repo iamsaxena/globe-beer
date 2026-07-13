@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, Save } from "lucide-react";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 type InviteUserProps = {
   onCreated?: () => void;
@@ -15,11 +15,17 @@ export function InviteUser({ onCreated }: InviteUserProps) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
 
-  const createUser = async () => {
+  const createUser = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    setStatus("");
+    if (!name.trim() || !email.trim() || !mobile.trim() || !username.trim() || !password) {
+      setStatus("Please fill name, email, mobile, username, and password.");
+      return;
+    }
     const response = await fetch("/api/users/manual", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, mobile, username, password, role: "Operator" })
+      body: JSON.stringify({ name: name.trim(), email: email.trim(), mobile: mobile.trim(), username: username.trim(), password, role: "Operator" })
     });
     const payload = await response.json();
     setStatus(response.ok ? `Created ${payload.user.username}` : payload.message);
@@ -34,7 +40,7 @@ export function InviteUser({ onCreated }: InviteUserProps) {
   };
 
   return (
-    <form className="grid gap-3 rounded-lg border border-line/20 bg-panel/80 p-4 backdrop-blur-xl xl:grid-cols-6">
+    <form onSubmit={createUser} className="grid gap-3 rounded-lg border border-line/20 bg-panel/80 p-4 backdrop-blur-xl xl:grid-cols-6">
       <input
         value={name}
         onChange={(event) => setName(event.target.value)}
@@ -70,7 +76,7 @@ export function InviteUser({ onCreated }: InviteUserProps) {
           type="password"
         />
       </div>
-      <button onClick={createUser} className="flex items-center justify-center gap-2 rounded-md bg-gold px-4 py-2 font-semibold text-black" type="button">
+      <button className="flex items-center justify-center gap-2 rounded-md bg-gold px-4 py-2 font-semibold text-black" type="submit">
         <Save className="h-4 w-4" />
         Add
       </button>

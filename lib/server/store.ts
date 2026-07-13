@@ -71,6 +71,10 @@ function memory(): MemoryStore {
   return globalStore.globeStore;
 }
 
+function normalizeIdentifier(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function supabaseConfig() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
@@ -180,15 +184,17 @@ export async function updateLead(id: string, patch: Partial<LeadRecord>) {
 }
 
 export async function createManualUser(payload: Omit<ManualUserRecord, "id" | "created_at" | "password_hash"> & { password: string }) {
-  if (payload.username === adminUsername || payload.email === adminUsername) {
+  const username = normalizeIdentifier(payload.username);
+  const email = normalizeIdentifier(payload.email);
+  if (username === adminUsername || email === adminUsername) {
     throw new Error("Built-in admin already exists.");
   }
   const record: ManualUserRecord = {
     id: randomUUID(),
-    name: payload.name,
-    email: payload.email,
-    mobile: payload.mobile,
-    username: payload.username,
+    name: payload.name.trim(),
+    email,
+    mobile: payload.mobile.trim(),
+    username,
     profile_pic: payload.profile_pic ?? "",
     password_hash: hashPassword(payload.password),
     role: payload.role,
@@ -214,10 +220,10 @@ export async function hasManualUsers() {
 }
 
 export async function findManualUserByUsername(username: string) {
-  const normalized = username.trim();
+  const normalized = normalizeIdentifier(username);
   if (!normalized) return null;
-  const remote = await supabaseRequest<ManualUserRecord[]>(`manual_users?select=*&username=eq.${encodeURIComponent(normalized)}&limit=1`);
-  const stored = remote ? remote[0] ?? null : memory().users.find((user) => user.username === normalized) ?? null;
+  const remote = await supabaseRequest<ManualUserRecord[]>(`manual_users?select=*&or=(username.eq.${encodeURIComponent(normalized)},email.eq.${encodeURIComponent(normalized)})&limit=1`);
+  const stored = remote ? remote[0] ?? null : memory().users.find((user) => user.username === normalized || user.email === normalized) ?? null;
   if (stored) return stored;
   return normalized === adminUsername ? defaultAdmin : null;
 }
@@ -243,6 +249,10 @@ export async function updateManualUserById(id: string, patch: Partial<Pick<Manua
   const updated_at = new Date().toISOString();
   const dbPatch = {
     ...patch,
+    ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+    ...(patch.email !== undefined ? { email: normalizeIdentifier(patch.email) } : {}),
+    ...(patch.mobile !== undefined ? { mobile: patch.mobile.trim() } : {}),
+    ...(patch.username !== undefined ? { username: normalizeIdentifier(patch.username) } : {}),
     ...(patch.password ? { password_hash: hashPassword(patch.password) } : {}),
     password: undefined,
     updated_at
@@ -258,6 +268,10 @@ export async function updateManualUserById(id: string, patch: Partial<Pick<Manua
   store.users[index] = {
     ...store.users[index],
     ...patch,
+    ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+    ...(patch.email !== undefined ? { email: normalizeIdentifier(patch.email) } : {}),
+    ...(patch.mobile !== undefined ? { mobile: patch.mobile.trim() } : {}),
+    ...(patch.username !== undefined ? { username: normalizeIdentifier(patch.username) } : {}),
     ...(patch.password ? { password_hash: hashPassword(patch.password) } : {}),
     updated_at
   };
