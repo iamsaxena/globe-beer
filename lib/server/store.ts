@@ -51,11 +51,11 @@ type MemoryStore = {
 };
 
 const globalStore = globalThis as typeof globalThis & { globeStore?: MemoryStore };
-const adminUsername = "whoshobhitsaxena@gmail.com";
+const adminUsername = "admin";
 const adminPassword = process.env.GLOBE_ADMIN_PASSWORD ?? "Password";
 const defaultAdmin: ManualUserRecord = {
   id: "admin-shobhit-saxena",
-  name: "Shobhit Saxena",
+  name: "Namahmi Labs",
   email: adminUsername,
   mobile: "",
   username: adminUsername,
